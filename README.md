@@ -1,4 +1,3 @@
-<img width="587" height="257" alt="图片1" src="https://github.com/user-attachments/assets/2001bb53-f8cb-46ee-999e-1301b8c29919" />
 项目简介
 
 针对生活垃圾图像检测任务，对比了 YOLOv8n/s、YOLOv10s、YOLO26s 等多个模型，并提出以下改进：
