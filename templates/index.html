@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>垃圾分类系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            /* 修复后的路径 */
+            background: url("/static/bg.jpg") no-repeat center center;
+            background-size: cover;
+            background-attachment: fixed;
+            background-color: rgba(232, 245, 233, 0.85);
+            background-blend-mode: overlay;
+            font-family: 'Segoe UI', 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0);
+            border-radius: 0;
+            box-shadow: none;
+            backdrop-filter: blur(2px);
+        }
+
+        header {
+            background: #2e7d32;
+            padding: 0.8rem 2rem;
+            color: white;
+            text-align: center;
+            flex-shrink: 0;
+            border-radius: 12px;
+            overflow: hidden; /* 必须加，否则内部内容会溢出圆角 */
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 0.2rem;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            padding: 1.2rem;
+            gap: 1.5rem;
+        }
+
+        .left-panel {
+            flex: 1.2;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            overflow-y: auto;
+            padding-right: 0.2rem;
+        }
+
+        .right-panel {
+            flex: 2;
+            background: #f5f5f5;
+            border-radius: 1rem;
+            overflow: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            position: relative;
+        }
+
+        .upload-area {
+            border: 2px dashed #2e7d32;
+            border-radius: 1.2rem;
+            background: #f9fbe7;
+            padding: 1.2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .upload-area:hover {
+            background: #f1f8e9;
+            border-color: #1b5e20;
+        }
+        .upload-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.3rem;
+            color: #2e7d32;
+        }
+        .upload-text {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #2e3b2e;
+        }
+        .upload-hint {
+            font-size: 0.75rem;
+            color: #6b6e6b;
+        }
+        #fileInput {
+            display: none;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 0.5rem 0;
+        }
+        .btn {
+            padding: 0.4rem 1rem;
+            border: none;
+            border-radius: 2rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-primary {
+            background: #2e7d32;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #1b5e20;
+        }
+        .btn-secondary {
+            background: #9e9e9e;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #757575;
+        }
+
+        .conf-control {
+            margin: 0.5rem 0;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            background: #fff;
+            padding: 0.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .conf-control label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #2e7d32;
+        }
+        #confSlider {
+            flex: 1;
+        }
+        #confValue {
+            min-width: 3rem;
+            text-align: center;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+
+        #cameraContainer {
+            display: none;  /* 初始隐藏，打开摄像头后变为 block */
+            margin-top: 10px;
+            width: 100%;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #video {
+             width: 100%;
+             display: block;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(2px);
+        }
+        .loading-content {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e0e0e0;
+            border-top: 4px solid #2e7d32;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+            flex-shrink: 0;
+        }
+        .result-header h3 {
+            font-size: 1.2rem;
+            color: #1b5e20;
+        }
+        .clear-btn {
+            background: #f5f5f5;
+            border: none;
+            padding: 0.3rem 1rem;
+            border-radius: 2rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #2e7d32;
+            transition: 0.2s;
+        }
+        .clear-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .predictions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            max-height: calc(100vh - 340px);
+            overflow-y: auto;
+            padding-right: 0.3rem;
+        }
+        .prediction-card {
+            background: white;
+            border-radius: 0.8rem;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            border-left: 5px solid;
+            transition: all 0.2s;
+        }
+        .prediction-card:hover {
+            transform: translateX(2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            padding: 0.6rem 0.8rem;
+            background: #fafafa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+        }
+        .garbage-name {
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #2c3e2c;
+        }
+        .confidence {
+            background: #e0f2e0;
+            padding: 0.2rem 0.5rem;
+            border-radius: 2rem;
+            font-size: 0.7rem;
+            color: #2e7d32;
+        }
+        .card-body {
+            padding: 0.6rem 0.8rem;
+        }
+        .category {
+            display: inline-block;
+            background: #f0f0f0;
+            padding: 0.2rem 0.6rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            margin-bottom: 0.4rem;
+        }
+        .desc {
+            font-size: 0.75rem;
+            color: #5f5f5f;
+            line-height: 1.3;
+        }
+
+        .right-panel img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 0.8rem;
+        }
+        .right-placeholder {
+            text-align: center;
+            color: #9e9e9e;
+            font-size: 0.9rem;
+            padding: 2rem;
+        }
+
+        .error-message {
+            position: fixed;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ffebee;
+            color: #c62828;
+            padding: 0.8rem 1.2rem;
+            border-radius: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 1100;
+            display: none;
+            white-space: nowrap;
+            font-size: 0.9rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 0.5rem;
+            font-size: 0.7rem;
+            color: #6c757d;
+            border-top: 1px solid #e0e0e0;
+            background: #f9f9f9;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                flex-direction: column;
+                overflow-y: auto;
+            }
+            body {
+                overflow: auto;
+                height: auto;
+            }
+            .app {
+                height: auto;
+            }
+            .predictions-list {
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <header>
+        <h1>智能垃圾分类系统</h1>
+        <p>上传图片、拖拽图片或拍照识别垃圾</p>
+    </header>
+
+    <div class="main-content">
+        <div class="left-panel">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon"></div>
+                <div class="upload-text">点击或拖拽图片至此</div>
+
+                <input type="file" id="fileInput" accept="image/jpeg,image/png">
+            </div>
+
+            <div class="btn-group">
+                <button id="openCameraBtn" class="btn btn-primary">打开摄像头</button>
+                <button id="captureBtn" class="btn btn-primary" style="display: none;">拍照识别</button>
+                <button id="closeCameraBtn" class="btn btn-secondary" style="display: none;">关闭摄像头</button>
+            </div>
+
+            <div id="cameraContainer" style="display: none;">
+                <video id="video" width="100%" autoplay muted playsinline></video>
+            </div>
+
+            <div class="conf-control">
+                <label>置信度阈值:</label>
+                <input type="range" id="confSlider" min="0" max="1" step="0.01" value="0.5">
+                <span id="confValue">0.50</span>
+            </div>
+
+            <div id="resultArea" style="display: none; flex: 1; display: flex; flex-direction: column;">
+                <div class="result-header">
+                    <h3>识别结果 <span id="detectedCount" style="font-size:0.9rem; color:#2e7d32;"></span></h3>
+                    <button class="clear-btn" id="clearBtn">清除结果</button>
+                </div>
+                <div class="predictions-list" id="predictionsList"></div>
+            </div>
+        </div>
+
+        <div class="right-panel" id="rightPanel">
+            <div class="right-placeholder">垃圾图片</div>
+        </div>
+    </div>
+
+    <footer>
+        🌱 基于深度学习 YOLOv8 模型 | 支持可回收、有害、厨余、其他四类垃圾识别
+    </footer>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+        <div class="spinner"></div>
+        <div>正在识别中...</div>
+    </div>
+</div>
+
+<div id="errorMsg" class="error-message"></div>
+
+<script>
+    // DOM 元素
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const resultArea = document.getElementById('resultArea');
+    const predictionsList = document.getElementById('predictionsList');
+    const rightPanel = document.getElementById('rightPanel');
+    const errorMsgDiv = document.getElementById('errorMsg');
+    const confSlider = document.getElementById('confSlider');
+    const confValue = document.getElementById('confValue');
+
+    // 摄像头相关元素
+    const openCameraBtn = document.getElementById('openCameraBtn');
+    const captureBtn = document.getElementById('captureBtn');
+    const closeCameraBtn = document.getElementById('closeCameraBtn');
+    const cameraContainer = document.getElementById('cameraContainer');
+    const video = document.getElementById('video');
+
+
+
+    let stream = null;          // 媒体流
+    let cameraReady = false;    // 摄像头是否就绪
+
+    // 置信度滑块实时显示
+    confSlider.addEventListener('input', () => {
+        confValue.textContent = parseFloat(confSlider.value).toFixed(2);
+    });
+
+    // 点击上传区域
+    uploadArea.addEventListener('click', () => fileInput.click());
+
+    // 拖拽上传
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.style.background = '#e8f5e9';
+        uploadArea.style.borderColor = '#1b5e20';
+    });
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.style.background = '#f9fbe7';
+        uploadArea.style.borderColor = '#2e7d32';
+    });
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.style.background = '#f9fbe7';
+        uploadArea.style.borderColor = '#2e7d32';
+        const files = e.dataTransfer.files;
+        if (files.length) handleFile(files[0]);
+    });
+
+    // 文件选择
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) handleFile(e.target.files[0]);
+    });
+
+    // 清除结果
+    document.getElementById('clearBtn').addEventListener('click', () => {
+        resultArea.style.display = 'none';
+        rightPanel.innerHTML = '<div class="right-placeholder">识别后的图片将显示在此处</div>';
+        fileInput.value = '';
+    });
+
+    // ==================== 摄像头功能 ====================
+    // 打开摄像头
+    openCameraBtn.addEventListener('click', async () => {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        // 重要：等待视频元数据加载后再播放
+        await new Promise((resolve) => {
+            video.onloadedmetadata = resolve;
+        });
+        // 显式调用 play() 并捕获可能的错误
+        await video.play();
+        cameraContainer.style.display = 'block';
+        openCameraBtn.style.display = 'none';
+        captureBtn.style.display = 'inline-block';
+        closeCameraBtn.style.display = 'inline-block';
+        cameraReady = true;
+    } catch (err) {
+        console.error('摄像头错误:', err);
+        let msg = '无法打开摄像头：';
+        if (err.name === 'NotAllowedError') msg += '请允许摄像头权限';
+        else if (err.name === 'NotFoundError') msg += '未检测到摄像头设备';
+        else if (err.name === 'NotReadableError') msg += '摄像头被其他程序占用';
+        else msg += err.message;
+        showError(msg);
+    }
+});
+
+video.onerror = () => {
+    showError('视频流加载失败，请检查摄像头');
+    closeCameraBtn.click();
+};
+
+    // 关闭摄像头
+    closeCameraBtn.addEventListener('click', () => {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+        video.srcObject = null;
+        cameraReady = false;
+        cameraContainer.style.display = 'none';
+        openCameraBtn.style.display = 'inline-block';
+        captureBtn.style.display = 'none';
+        closeCameraBtn.style.display = 'none';
+    });
+
+    // 拍照识别
+    captureBtn.addEventListener('click', async () => {
+        if (!cameraReady || video.readyState !== 4 || video.videoWidth === 0) {
+            showError('摄像头未就绪，请稍后重试');
+            return;
+        }
+        // 显示加载（拍照瞬间）
+        loadingOverlay.style.display = 'flex';
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+            const file = new File([blob], 'camera_capture.jpg', { type: 'image/jpeg' });
+            await handleFile(file);
+        } catch (err) {
+            showError('拍照失败：' + err.message);
+        } finally {
+            loadingOverlay.style.display = 'none';
+        }
+    });
+
+    // ==================== 核心识别函数 ====================
+    async function handleFile(file) {
+        // 文件类型和大小校验
+        if (!file.type.startsWith('image/')) {
+            showError('请选择图片文件（JPG/PNG）');
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            showError('图片大小不能超过 10MB');
+            return;
+        }
+
+        resultArea.style.display = 'none';
+        loadingOverlay.style.display = 'flex';
+        errorMsgDiv.style.display = 'none';
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('conf', confSlider.value);
+
+        try {
+            const response = await fetch('/predict', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                displayResult(data);
+            } else {
+                showError(data.error || '识别失败，请重试');
+            }
+        } catch (err) {
+            console.error(err);
+            showError('网络错误，请检查服务是否启动');
+        } finally {
+            loadingOverlay.style.display = 'none';
+        }
+    }
+
+    function displayResult(data) {
+        const countSpan = document.getElementById('detectedCount');
+        if (data.detected_count !== undefined) {
+            countSpan.textContent = ` (共 ${data.detected_count} 个)`;
+        } else {
+            countSpan.textContent = '';
+        }
+
+        rightPanel.innerHTML = `<img src="data:image/jpeg;base64,${data.image}" alt="检测结果">`;
+
+        predictionsList.innerHTML = '';
+        if (data.predictions && data.predictions.length > 0) {
+            data.predictions.forEach(pred => {
+                const card = document.createElement('div');
+                card.className = 'prediction-card';
+                card.style.borderLeftColor = pred.color;
+                card.innerHTML = `
+                    <div class="card-header">
+                        <span class="garbage-name">${escapeHtml(pred.class_name)}</span>
+                        <span class="confidence">${pred.confidence}%</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="category" style="background: ${pred.color}20; color: ${pred.color};">${pred.category}</div>
+                        <div class="desc">${escapeHtml(pred.desc)}</div>
+                    </div>
+                `;
+                predictionsList.appendChild(card);
+            });
+        } else {
+            predictionsList.innerHTML = '<div class="prediction-card" style="text-align:center; padding:1rem;">未检测到垃圾对象</div>';
+        }
+
+        resultArea.style.display = 'flex';
+    }
+
+    function showError(msg) {
+        errorMsgDiv.textContent = msg;
+        errorMsgDiv.style.display = 'block';
+        setTimeout(() => {
+            errorMsgDiv.style.display = 'none';
+        }, 4000);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+</script>
+</body>
+</html>
