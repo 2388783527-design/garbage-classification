@@ -13,8 +13,11 @@
 
 技术栈
 框架：PyTorch 2.7 + CUDA 12.8 / Ultralytics YOLO 8.4.27 / Flask 2.3
+
 语言：Python 3.9
+
 图像处理：OpenCV、Pillow
+
 工具：PyCharm、Git
 
 
